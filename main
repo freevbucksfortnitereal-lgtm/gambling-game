@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slot Machine Clicker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.8) 100%),
+                repeating-linear-gradient(0deg, rgba(255, 0, 0, 0.03) 0px, transparent 1px, transparent 2px, rgba(255, 0, 0, 0.03) 3px);
+            pointer-events: none;
+            animation: scanlines 8s linear infinite;
+        }
+
+        @keyframes scanlines {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(20px); }
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 50% 50%, rgba(255, 0, 0, 0.1), transparent 50%);
+            animation: redPulse 4s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes redPulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.6; }
+        }
+
+        .game-container {
+            background: rgba(10, 10, 20, 0.9);
+            padding: 40px;
+            border-radius: 5px;
+            box-shadow: 
+                0 0 50px rgba(255, 0, 0, 0.5),
+                0 0 100px rgba(255, 0, 0, 0.3),
+                inset 0 0 50px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            border: 2px solid rgba(255, 0, 0, 0.3);
+            max-width: 900px;
+            position: relative;
+            z-index: 1;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 
+                0 0 10px #ff0000,
+                0 0 20px #ff0000,
+                0 0 30px #ff0000;
+            letter-spacing: 8px;
+            font-weight: bold;
+            animation: flicker 3s infinite alternate;
+        }
+
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .money-display {
+            font-size: 2em;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 0;
+            border: 2px solid #ff0000;
+            box-shadow: 
+                0 0 20px rgba(255, 0, 0, 0.4),
+                inset 0 0 20px rgba(255, 0, 0, 0.1);
+            text-shadow: 0 0 10px #ff0000;
+        }
+
+        .mining-section {
+            background: linear-gradient(145deg, #1a0f0a, #0a0505);
+            padding: 30px;
+            border-radius: 5px;
+            margin: 30px 0;
+            box-shadow: 
+                0 0 30px rgba(139, 69, 19, 0.5),
+                inset 0 0 30px rgba(0, 0, 0, 0.8);
+            position: relative;
+            border: 2px solid rgba(139, 69, 19, 0.4);
+        }
+
+        .mining-wall {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #0a0a0a;
+            border-radius: 5px;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 10;
+            overflow: hidden;
+            box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.9);
+        }
+
+        .mining-wall::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(139, 69, 19, 0.1) 2px,
+                    rgba(139, 69, 19, 0.1) 4px
+                ),
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(139, 69, 19, 0.1) 2px,
+                    rgba(139, 69, 19, 0.1) 4px
+                );
+            opacity: 0.3;
+        }
+
+        .mining-wall.active {
+            display: flex;
+        }
+
+        .mining-wall.breaking {
+            pointer-events: none;
+        }
+
+        .planks-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+
+        .plank {
+            position: absolute;
+            background: 
+                linear-gradient(90deg, 
+                    #4a2511 0%, 
+                    #6b3820 10%, 
+                    #4a2511 20%,
+                    #6b3820 30%,
+                    #4a2511 40%,
+                    #6b3820 50%,
+                    #4a2511 60%,
+                    #6b3820 70%,
+                    #4a2511 80%,
+                    #6b3820 90%,
+                    #4a2511 100%
+                );
+            border: 3px solid #2d1508;
+            box-shadow: 
+                0 5px 15px rgba(0, 0, 0, 0.8),
+                inset 0 2px 5px rgba(255, 255, 255, 0.1),
+                inset 0 -2px 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .plank::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 8px,
+                    rgba(0, 0, 0, 0.3) 8px,
+                    rgba(0, 0, 0, 0.3) 9px
+                ),
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 40px,
+                    rgba(0, 0, 0, 0.2) 40px,
+                    rgba(0, 0, 0, 0.2) 42px
+                );
+        }
+
+        .plank::after {
+            content: '🔩';
+            position: absolute;
+            font-size: 1.5em;
+            color: #888;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.8);
+        }
+
+        .plank-horizontal::after {
+            top: 50%;
+            left: 20px;
+            transform: translateY(-50%);
+        }
+
+        .plank-vertical::after {
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .plank-horizontal {
+            width: 100%;
+            height: 60px;
+            left: 0;
+        }
+
+        .plank-vertical {
+            width: 50px;
+            height: 100%;
+            top: 0;
+        }
+
+        .plank.falling {
+            animation: fallDown 0.8s ease-in forwards;
+        }
+
+        @keyframes fallDown {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(600px) rotate(25deg);
+                opacity: 0;
+            }
+        }
+
+        .lock {
+            position: absolute;
+            font-size: 4em;
+            z-index: 5;
+            filter: 
+                drop-shadow(0 0 10px rgba(255, 0, 0, 0.8))
+                drop-shadow(0 0 20px rgba(255, 0, 0, 0.6))
+                drop-shadow(0 5px 10px rgba(0, 0, 0, 0.9));
+            animation: lockGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes lockGlow {
+            0%, 100% { 
+                filter: 
+                    drop-shadow(0 0 10px rgba(255, 0, 0, 0.8))
+                    drop-shadow(0 0 20px rgba(255, 0, 0, 0.6));
+            }
+            50% { 
+                filter: 
+                    drop-shadow(0 0 20px rgba(255, 0, 0, 1))
+                    drop-shadow(0 0 40px rgba(255, 0, 0, 0.8));
+            }
+        }
+
+        .lock.shake {
+            animation: shake 0.5s ease-in-out, lockGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(-50%) rotate(0deg); }
+            25% { transform: translateX(-50%) translateX(-10px) rotate(-10deg); }
+            75% { transform: translateX(-50%) translateX(10px) rotate(10deg); }
+        }
+
+        .wall-content {
+            position: relative;
+            z-index: 6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .wall-text {
+            font-size: 2em;
+            color: #ff0000;
+            text-shadow: 
+                0 0 10px #ff0000,
+                0 0 20px #ff0000,
+                0 0 30px #ff0000;
+            letter-spacing: 3px;
+            font-weight: bold;
+        }
+
+        .timer-display {
+            font-size: 3em;
+            color: #ff0000;
+            font-weight: bold;
+            text-shadow: 
+                0 0 20px #ff0000,
+                0 0 40px #ff0000;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px 40px;
+            border-radius: 0;
+            border: 3px solid #ff0000;
+            box-shadow: 
+                0 0 20px rgba(255, 0, 0, 0.5),
+                inset 0 0 20px rgba(255, 0, 0, 0.2);
+            font-family: 'Courier New', monospace;
+        }
+
+        .mining-title {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        .mines-left {
+            font-size: 1.2em;
+            margin: 10px 0;
+            color: #ffd700;
+        }
+
+        .mining-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin: 20px auto;
+            max-width: 400px;
+        }
+
+        .mine-block {
+            width: 100%;
+            aspect-ratio: 1;
+            background: linear-gradient(145deg, #1a1a1a, #0a0a0a);
+            border: 2px solid rgba(139, 69, 19, 0.5);
+            border-radius: 0;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3em;
+            box-shadow: 
+                0 5px 15px rgba(0, 0, 0, 0.8),
+                inset 0 0 20px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .mine-block::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 10px,
+                    rgba(139, 69, 19, 0.1) 10px,
+                    rgba(139, 69, 19, 0.1) 20px
+                );
+        }
+
+        .mine-block:hover:not(.mined) {
+            transform: translateY(-5px);
+            box-shadow: 
+                0 8px 20px rgba(255, 0, 0, 0.6),
+                inset 0 0 20px rgba(255, 0, 0, 0.2);
+            border-color: rgba(255, 0, 0, 0.8);
+        }
+
+        .mine-block.mined {
+            background: linear-gradient(145deg, #0a0a0a, #000);
+            border-color: #333;
+            cursor: not-allowed;
+            transform: scale(0.95);
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.9);
+        }
+
+        .reset-mines {
+            background: linear-gradient(145deg, #4facfe, #00f2fe);
+            color: white;
+            font-size: 1.2em;
+            padding: 15px 40px;
+            margin: 15px 10px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            text-transform: uppercase;
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+        }
+
+        .reset-mines:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(79, 172, 254, 0.6);
+        }
+
+        .slot-machine {
+            background: linear-gradient(145deg, #330000, #1a0000);
+            padding: 30px;
+            border-radius: 5px;
+            margin: 30px 0;
+            box-shadow: 
+                0 0 30px rgba(255, 0, 0, 0.5),
+                inset 0 0 30px rgba(0, 0, 0, 0.8);
+            border: 2px solid rgba(255, 0, 0, 0.3);
+        }
+
+        .reels {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .reel {
+            width: 100px;
+            height: 100px;
+            background: #0a0a0a;
+            border-radius: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 4em;
+            box-shadow: 
+                inset 0 0 20px rgba(0, 0, 0, 0.9),
+                0 0 10px rgba(255, 0, 0, 0.3);
+            border: 2px solid rgba(255, 0, 0, 0.5);
+        }
+
+        .reel.spinning {
+            animation: spin 0.1s linear infinite;
+        }
+
+        @keyframes spin {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        button {
+            font-size: 1.2em;
+            padding: 15px 40px;
+            margin: 10px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .pull-lever {
+            background: linear-gradient(145deg, #f093fb, #f5576c);
+            color: white;
+            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+        }
+
+        .pull-lever:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(245, 87, 108, 0.6);
+        }
+
+        .pull-lever:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .message {
+            min-height: 30px;
+            font-size: 1.3em;
+            margin: 15px 0;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .win {
+            color: #ff0000;
+            animation: pulse 0.5s ease-in-out;
+            text-shadow: 
+                0 0 10px #ff0000,
+                0 0 20px #ff0000;
+        }
+
+        .lose {
+            color: #666;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 20px;
+            font-size: 0.9em;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 20px;
+            border-radius: 0;
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.2);
+        }
+
+        .mining-result {
+            font-size: 1.1em;
+            margin: 10px 0;
+            min-height: 30px;
+            text-shadow: 0 0 5px currentColor;
+        }
+
+        .mining-title {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            letter-spacing: 3px;
+            text-shadow: 0 0 10px rgba(139, 69, 19, 0.8);
+        }
+
+        .mines-left {
+            font-size: 1.2em;
+            margin: 10px 0;
+            color: rgba(139, 69, 19, 1);
+            text-shadow: 0 0 10px rgba(139, 69, 19, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🎰 Slot Machine 🎰</h1>
+        
+        <div class="money-display">
+            💰 Money: $<span id="money">0</span>
+        </div>
+
+        <div class="mining-section">
+            <div class="mining-wall" id="miningWall">
+                <div class="planks-container" id="planksContainer">
+                    <div class="plank plank-horizontal" style="top: 10%;"></div>
+                    <div class="plank plank-horizontal" style="top: 30%;"></div>
+                    <div class="plank plank-horizontal" style="top: 50%;"></div>
+                    <div class="plank plank-horizontal" style="top: 70%;"></div>
+                    <div class="plank plank-horizontal" style="bottom: 10%;"></div>
+                    <div class="plank plank-vertical" style="left: 15%;"></div>
+                    <div class="plank plank-vertical" style="left: 45%;"></div>
+                    <div class="plank plank-vertical" style="right: 15%;"></div>
+                </div>
+                <div class="lock" id="lock1" style="top: 35%; left: 50%; transform: translateX(-50%);">🔒</div>
+                <div class="lock" id="lock2" style="top: 55%; left: 50%; transform: translateX(-50%);">🔒</div>
+                <div class="wall-content">
+                    <div class="wall-text">🔒 Mine Resetting...</div>
+                    <div class="timer-display" id="timerDisplay">30</div>
+                </div>
+            </div>
+            
+            <div class="mining-title">⛏️ Mining Zone ⛏️</div>
+            <div class="mines-left">Mines Left: <span id="minesLeft">3</span>/3</div>
+            
+            <div class="mining-grid" id="miningGrid">
+                <div class="mine-block" onclick="mineBlock(0)">⬛</div>
+                <div class="mine-block" onclick="mineBlock(1)">⬛</div>
+                <div class="mine-block" onclick="mineBlock(2)">⬛</div>
+                <div class="mine-block" onclick="mineBlock(3)">⬛</div>
+                <div class="mine-block" onclick="mineBlock(4)">⬛</div>
+                <div class="mine-block" onclick="mineBlock(5)">⬛</div>
+                <div class="mine-block" onclick="mineBlock(6)">⬛</div>
+                <div class="mine-block" onclick="mineBlock(7)">⬛</div>
+                <div class="mine-block" onclick="mineBlock(8)">⬛</div>
+            </div>
+
+            <div class="mining-result" id="miningResult"></div>
+            <button class="reset-mines" id="resetButton" onclick="resetMining()">🔄 Reset Mining (Free)</button>
+        </div>
+
+        <div class="slot-machine">
+            <div class="reels">
+                <div class="reel" id="reel1">🍒</div>
+                <div class="reel" id="reel2">🍋</div>
+                <div class="reel" id="reel3">🍊</div>
+            </div>
+
+            <button class="pull-lever" id="pullButton" onclick="pullLever()">
+                🎰 PULL LEVER - $50
+            </button>
+
+            <div class="message" id="message"></div>
+        </div>
+
+        <div class="stats">
+            <div class="stat">
+                🎲 Spins: <span id="spins">0</span>
+            </div>
+            <div class="stat">
+                🏆 Wins: <span id="wins">0</span>
+            </div>
+            <div class="stat">
+                💎 Items Mined: <span id="itemsMined">0</span>
+            </div>
+            <div class="stat">
+                💸 Total Won: $<span id="totalWon">0</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let money = 0;
+        let spins = 0;
+        let wins = 0;
+        let totalWon = 0;
+        let minesLeft = 3;
+        let itemsMined = 0;
+        let timerInterval = null;
+        let timeRemaining = 0;
+        let isLocked = false;
+        
+        const symbols = ['🍒', '🍋', '🍊', '🍉', '⭐', '💎', '7️⃣'];
+        const spinCost = 50;
+
+        const miningItems = [
+            { item: '💎', name: 'Diamond', value: 100, chance: 0.05 },
+            { item: '💰', name: 'Gold', value: 50, chance: 0.10 },
+            { item: '🟦', name: 'Sapphire', value: 35, chance: 0.15 },
+            { item: '🟩', name: 'Emerald', value: 30, chance: 0.15 },
+            { item: '🪙', name: 'Coin', value: 20, chance: 0.20 },
+            { item: '🪨', name: 'Rock', value: 5, chance: 0.35 }
+        ];
+
+        function mineBlock(index) {
+            if (minesLeft <= 0 || isLocked) return;
+            
+            const blocks = document.querySelectorAll('.mine-block');
+            if (blocks[index].classList.contains('mined')) return;
+            
+            blocks[index].classList.add('mined');
+            minesLeft--;
+            
+            const random = Math.random();
+            let cumulativeChance = 0;
+            let foundItem = null;
+            
+            for (let item of miningItems) {
+                cumulativeChance += item.chance;
+                if (random <= cumulativeChance) {
+                    foundItem = item;
+                    break;
+                }
+            }
+            
+            const resultDiv = document.getElementById('miningResult');
+            
+            if (foundItem && random <= 0.65) {
+                blocks[index].textContent = foundItem.item;
+                money += foundItem.value;
+                itemsMined++;
+                resultDiv.textContent = `Found ${foundItem.item} ${foundItem.name}! +${foundItem.value}`;
+                resultDiv.className = 'mining-result win';
+            } else {
+                blocks[index].textContent = '❌';
+                resultDiv.textContent = 'Nothing found...';
+                resultDiv.className = 'mining-result lose';
+            }
+            
+            updateDisplay();
+        }
+
+        function resetMining() {
+            if (isLocked) return;
+            
+            minesLeft = 3;
+            const blocks = document.querySelectorAll('.mine-block');
+            blocks.forEach(block => {
+                block.classList.remove('mined');
+                block.textContent = '⬛';
+            });
+            document.getElementById('miningResult').textContent = '';
+            
+            // Lock the mine
+            isLocked = true;
+            timeRemaining = 30;
+            document.getElementById('miningWall').classList.add('active');
+            document.getElementById('resetButton').disabled = true;
+            document.getElementById('resetButton').style.opacity = '0.5';
+            
+            // Start countdown
+            updateTimer();
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                updateTimer();
+                
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    unlockMine();
+                }
+            }, 1000);
+            
+            updateDisplay();
+        }
+
+        function updateTimer() {
+            document.getElementById('timerDisplay').textContent = timeRemaining;
+            
+            // Shake locks when timer gets low
+            if (timeRemaining <= 5 && timeRemaining > 0) {
+                document.getElementById('lock1').classList.add('shake');
+                document.getElementById('lock2').classList.add('shake');
+                setTimeout(() => {
+                    document.getElementById('lock1').classList.remove('shake');
+                    document.getElementById('lock2').classList.remove('shake');
+                }, 500);
+            }
+        }
+
+        function unlockMine() {
+            const wall = document.getElementById('miningWall');
+            wall.classList.add('breaking');
+            
+            // Break the locks
+            document.getElementById('lock1').style.animation = 'fallDown 0.8s ease-in forwards';
+            document.getElementById('lock2').style.animation = 'fallDown 0.8s ease-in forwards';
+            
+            // Break all planks
+            const planks = document.querySelectorAll('.plank');
+            planks.forEach((plank, index) => {
+                setTimeout(() => {
+                    plank.classList.add('falling');
+                }, index * 50);
+            });
+            
+            // Hide wall after animation
+            setTimeout(() => {
+                isLocked = false;
+                wall.classList.remove('active', 'breaking');
+                document.getElementById('resetButton').disabled = false;
+                document.getElementById('resetButton').style.opacity = '1';
+                
+                // Reset planks for next time
+                planks.forEach(plank => {
+                    plank.classList.remove('falling');
+                    plank.style.animation = '';
+                });
+                document.getElementById('lock1').style.animation = '';
+                document.getElementById('lock2').style.animation = '';
+            }, 1000);
+        }
+
+        function pullLever() {
+            if (money < spinCost) {
+                document.getElementById('message').textContent = '❌ Not enough money!';
+                document.getElementById('message').className = 'message lose';
+                return;
+            }
+
+            money -= spinCost;
+            spins++;
+            
+            const pullButton = document.getElementById('pullButton');
+            pullButton.disabled = true;
+            document.getElementById('message').textContent = '';
+
+            const reels = [
+                document.getElementById('reel1'),
+                document.getElementById('reel2'),
+                document.getElementById('reel3')
+            ];
+
+            reels.forEach(reel => reel.classList.add('spinning'));
+
+            let spinInterval = setInterval(() => {
+                reels.forEach(reel => {
+                    reel.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+                });
+            }, 100);
+
+            setTimeout(() => {
+                clearInterval(spinInterval);
+                
+                const results = [
+                    symbols[Math.floor(Math.random() * symbols.length)],
+                    symbols[Math.floor(Math.random() * symbols.length)],
+                    symbols[Math.floor(Math.random() * symbols.length)]
+                ];
+
+                reels.forEach((reel, i) => {
+                    reel.textContent = results[i];
+                    reel.classList.remove('spinning');
+                });
+
+                checkWin(results);
+                pullButton.disabled = false;
+                updateDisplay();
+            }, 2000);
+        }
+
+        function checkWin(results) {
+            const msg = document.getElementById('message');
+            
+            if (results[0] === results[1] && results[1] === results[2]) {
+                let winAmount = 0;
+                
+                if (results[0] === '💎') {
+                    winAmount = 1000;
+                    msg.textContent = '💎 JACKPOT! Won $1000! 💎';
+                } else if (results[0] === '7️⃣') {
+                    winAmount = 500;
+                    msg.textContent = '🎉 TRIPLE 7s! Won $500! 🎉';
+                } else if (results[0] === '⭐') {
+                    winAmount = 300;
+                    msg.textContent = '⭐ AMAZING! Won $300! ⭐';
+                } else {
+                    winAmount = 150;
+                    msg.textContent = `🎊 Three ${results[0]}! Won $150! 🎊`;
+                }
+                
+                money += winAmount;
+                wins++;
+                totalWon += winAmount;
+                msg.className = 'message win';
+            } else if (results[0] === results[1] || results[1] === results[2] || results[0] === results[2]) {
+                money += 25;
+                totalWon += 25;
+                msg.textContent = '😊 Two match! Won $25!';
+                msg.className = 'message win';
+            } else {
+                msg.textContent = '😔 No match. Try again!';
+                msg.className = 'message lose';
+            }
+        }
+
+        function updateDisplay() {
+            document.getElementById('money').textContent = money;
+            document.getElementById('spins').textContent = spins;
+            document.getElementById('wins').textContent = wins;
+            document.getElementById('totalWon').textContent = totalWon;
+            document.getElementById('minesLeft').textContent = minesLeft;
+            document.getElementById('itemsMined').textContent = itemsMined;
+        }
+
+        updateDisplay();
+    </script>
+</body>
+</html>
